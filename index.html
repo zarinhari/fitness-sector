@@ -29,6 +29,7 @@
         .kbju-card { background: #0f172a; padding: 12px 6px; border-radius: 8px; border: 1px solid #334155; }
         .kbju-card .num { display: block; font-size: 18px; font-weight: bold; color: #38bdf8; }
         .kbju-card .txt { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
+        .100percent-alert { text-align: center; margin: 15px 0; color: #f59e0b; font-weight: bold; font-size: 14px; line-height: 1.4; padding: 10px; border: 1px dashed #f59e0b; border-radius: 6px; background: rgba(245,158,11,0.05); }
         .coach-memo { background: #131d31; padding: 18px; border-left: 4px solid #38bdf8; border-radius: 6px; margin-top: 20px; font-size: 14px; }
         .coach-memo ul { margin-left: 18px; margin-top: 10px; }
         .coach-memo li { margin-bottom: 8px; }
@@ -216,8 +217,10 @@
 </div>
 
 <script>
-    // СЮДА ВСТАВЬ СВОЮ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT
+    // =========================================================================
+    // ВНИМАНИЕ! ВСТАВЬ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT МЕЖДУ ОДИНАРНЫМИ КАВЫЧКАМИ СНИЗУ:
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOhRLt8WY8wyxLmT6cvKnQ7qjXGJhSRBwXvlz2e6obIVxmffdoCDhv0SDwrNfC97Hh/exec'; 
+    // =========================================================================
 
     // Ограничение выбора чекбоксов до 3 элементов
     const checkboxes = document.querySelectorAll('input[name="foodPattern"]');
@@ -280,7 +283,7 @@
         const checkedFoods = [];
         document.querySelectorAll('input[name="foodPattern"]:checked').forEach(cb => checkedFoods.push(cb.value));
 
-        // 1. Расчет базового обмена (Миффлин-Сан Жеор)
+        // 1. Расчет базового обмена (Миффлина-Сан Жеора)
         let bmr = 0;
         if (gender === 'male') {
             bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
@@ -288,47 +291,49 @@
             bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
         }
 
-        // 2. Сбор коэффициента активности
+        // 2. Коэффициент активности
         let factor = 1.2; 
         if (training === 'light') factor = 1.375;
         if (training === 'heavy') factor = 1.55;
         if (training === 'lfk') factor = 1.25;
 
-        // Корректировка за физ. труд
         if (labor === 'yes') factor += 0.2; 
-        // Корректировка за активность в дни отдыха
         if (offDaysActivity === 'high') factor += 0.05;
 
-        let tdee = bmr * factor; // Чистая норма поддержания
+        let tdee = bmr * factor; 
         let calories = 0;
         let p = 0, f = 0, c = 0;
 
-        // 3. Высчитываем КБЖУ под конкретную цель
+        // КОРРЕКТИРОВКА БЕЛКА: Строго 1.3 грамма на реальный вес тела человека
+        p = Math.round(weight * 1.3);
+
+        // 3. Высчитываем адекватные калории и жиры под цель, остаток отдаем в углеводы
         if (goal === 'loss') {
             calories = Math.round(tdee - 350);
-            p = Math.round(weight * 2.2); 
-            f = Math.round(weight * 0.9);
-            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+            f = Math.round(weight * 0.85); // Оптимально для поддержки гормональной системы на сушке
         } else if (goal === 'gain') {
             calories = Math.round(tdee + 400);
-            p = Math.round(weight * 2.0);
-            f = Math.round(weight * 1.0);
-            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+            f = Math.round(weight * 1.0);  // Повыше для профицита массы
         } else if (goal === 'keep') {
             calories = Math.round(tdee);
-            p = Math.round(weight * 1.6);
-            f = Math.round(weight * 1.0);
-            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+            f = Math.round(weight * 0.9);
         } else if (goal === 'recomp') {
-            calories = Math.round(tdee - 120); // Легкий дефицит для топки жира
-            p = Math.round(weight * 2.3); // Максимальный белок для синтеза мышц
-            f = Math.round(weight * 0.8);
-            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+            calories = Math.round(tdee - 120);
+            f = Math.round(weight * 0.85);
+        }
+
+        // Углеводы забирают ВСЕ оставшиеся чистые калории
+        c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+
+        // Страховочный предохранитель: угли не должны падать ниже нормы жизнедеятельности
+        if (c < 65) {
+            c = 65;
+            f = Math.round((calories - (p * 4) - (c * 4)) / 9);
         }
 
         const bjuString = `${p}/${f}/${c}`;
 
-        // Подготовка данных для отправки
+        // Отправка данных на сервер Google
         const payload = {
             name, username, goal, gender, age, height, weight,
             training: document.querySelector('input[name="training"]:checked').parentElement.textContent.trim(),
@@ -339,7 +344,6 @@
             calories, bju: bjuString
         };
 
-        // Отправка в гугл таблицу (no-cors режим для стабильности)
         fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -373,18 +377,22 @@
                 <div class="kbju-card"><span class="num">${c}г</span><span class="txt">Углев.</span></div>
             </div>
 
+            <div class="100percent-alert">
+                🔥 Важно: это все РЕКОМЕНДУЕМОЕ БЖУ под цель человека, которая даст результат со 100-процентной вероятностью!
+            </div>
+
             <div class="coach-memo">
                 <strong>💡 Разбор твоих ошибок и рекомендации от тренера:</strong>
                 <ul>
                     <li><strong>Базовое правило:</strong> Не налегай на соленое, соусы и тяжелую пищу прямо перед сном — это ломает фазы глубокого сна и гарантирует утренние отеки на лице. Потребляй чистые калории (крупы, мясо, яйца, птица).</li>
         `;
 
-        // Умные разборы питания
+        // Разборы питания
         if (freq === 'Стараюсь питаться правильно, но срываюсь') {
             html += `<li><strong>Про срывы:</strong> Твое желание питаться правильно — это круто! Срывы случаются не из-за слабой воли, а когда рамки слишком жесткие или днем организм банально голодает. Наш расчет КБЖУ — сытный, ешь свою норму и срывов не будет!</li>`;
         }
         if (freq === '1-2 раза в день') {
-            html += `<li><strong>Режим еды:</strong> Питание 1-2 раза в день перегружает ЖКТ огромными порциями. Попробуй распределить этот же калораж на 3-4 приема — энергия будет ровнее, а усвоение белка эффективнее.</li>`;
+            html += `<li><strong>Режим еды:</strong> Питание 1-2 раза в день перегружает ЖКТ огромными порциями. Попробуй распределить этот же калораж на 3-4 приема — энергия будет ровнее, а усвоение нутриентов эффективнее.</li>`;
         }
         if (freq === 'Постоянно кусочничаю') {
             html += `<li><strong>Про кусочничество:</strong> Постоянные мелкие перекусы бесконечно держат инсулин высоким. На сушке это блокирует жиросжигание, а на массе убивает здоровый аппетит к полноценной еде. Сделай чистые промежутки между едой.</li>`;
@@ -396,15 +404,15 @@
             html += `<li><strong>Внимание, хаос в режиме!</strong> Голодать сутками на кофе, а потом переедать — это сильный удар по метаболизму. Организм пугается и при первой возможности будет откладывать всё в жировое депо. Нужен четкий график приемов пищи.</li>`;
         }
 
-        // Разбор состава продуктов
+        // Качество еды
         if (checkedFoods.includes('Мало белка')) {
-            html += `<li><strong>Дефицит белка:</strong> Твоя цель требует жесткого контроля протеина (${p}г). Если не добираешь мясо, рыбу или яйца — мышцы на массе расти не будут, а на сушке сгорит мышечная ткань, а не жир. Добавь белок в каждый прием пищи!</li>`;
+            html += `<li><strong>Дефицит белка:</strong> Мы установили тебе четкую норму белка (${p}г). Если не добираешь мясо, рыбу или яйца — мышцы расти не будут, а на сушке сгорит мышечная ткань, а не жир. Добавь белок в каждый прием!</li>`;
         }
         if (checkedFoods.includes('Фастфуд') || checkedFoods.includes('Сладкое/мучное')) {
             html += `<li><strong>Качество топлива:</strong> Фастфуд и сахар дают пустые калории и резкие скачки сахара. Через час ты снова захочешь есть, а избыток быстрых углей легко пойдет в бока. Сократи их до 10-15% от общего рациона.</li>`;
         }
 
-        // Разбор восстановления и сна
+        // Сон и стресс
         if (sleep === 'Менее 6 часов') {
             if (daySleep === 'Да, регулярно') {
                 html += `<li><strong>Недосып ночью:</strong> Ты спишь ночью менее 6 часов. Дневной сон немного спасает ситуацию и гасит кортизол, но старайся добирать ночные 7 часов, чтобы гормональная система работала на 100%.</li>`;
@@ -412,13 +420,9 @@
                 html += `<li><strong>Критический недосып:</strong> Без 7-8 часов ночного сна КБЖУ работает наполовину. Гормон кортизол будет разрушать мышцы и заставлять тело копить жир «про запас». Ложись спать вовремя!</li>`;
             }
         }
-
-        // Разбор стресса
         if (stress === 'Хронический стресс, выгорание') {
             html += `<li><strong>Высокий стресс!</strong> ЦНС на пределе. Не пытайся сейчас убивать себя сверхинтенсивными тренировками «до отказа». Делай упор на технику, качественное восстановление и не урезай калории слишком резко. Телу нужен комфорт.</li>`;
         }
-
-        // Разбор вредных привычек
         if (badHabits === 'Регулярно курю/выпиваю') {
             html += `<li><strong>Алкоголь и курение:</strong> Алкоголь на 24-48 часов полностью выключает синтез белка и сжигает твои результаты в зале. Если хочешь прогресса — минимизируй спиртное.</li>`;
         }
