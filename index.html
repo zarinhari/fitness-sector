@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ КБЖУ — Силовой Сектор</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #0f172a; color: #e2e8f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
+        .quiz-card { background: #1e293b; max-width: 580px; width: 100%; padding: 25px; border-radius: 14px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid #334155; }
+        h2 { margin-bottom: 20px; font-size: 20px; color: #38bdf8; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .input-item { margin-bottom: 16px; }
+        label.field-lbl { display: block; margin-bottom: 6px; font-weight: 600; font-size: 14px; color: #94a3b8; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #475569; background: #0f172a; color: #fff; border-radius: 8px; font-size: 16px; outline: none; }
+        input:focus, select:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.2); }
+        .option-box { display: block; padding: 12px 16px; background: #0f172a; border: 1px solid #475569; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; position: relative; }
+        .option-box:hover { border-color: #38bdf8; background: #131d31; }
+        .option-box input { margin-right: 12px; transform: scale(1.2); vertical-align: middle; }
+        .btn-row { display: flex; justify-content: space-between; margin-top: 25px; gap: 12px; }
+        button { flex: 1; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-go { background: #38bdf8; color: #0f172a; }
+        .btn-go:hover { background: #0ea5e9; }
+        .btn-back { background: #475569; color: #e2e8f0; }
+        .btn-back:hover { background: #334155; }
+        #results { line-height: 1.6; }
+        .kbju-dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 20px 0; text-align: center; }
+        .kbju-card { background: #0f172a; padding: 12px 6px; border-radius: 8px; border: 1px solid #334155; }
+        .kbju-card .num { display: block; font-size: 18px; font-weight: bold; color: #38bdf8; }
+        .kbju-card .txt { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
+        .coach-memo { background: #131d31; padding: 18px; border-left: 4px solid #38bdf8; border-radius: 6px; margin-top: 20px; font-size: 14px; }
+        .coach-memo ul { margin-left: 18px; margin-top: 10px; }
+        .coach-memo li { margin-bottom: 8px; }
+        .loader { text-align: center; font-size: 18px; color: #38bdf8; padding: 30px 0; }
+        .limit-alert { font-size: 12px; color: #f59e0b; margin-top: 4px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <form id="mainQuizForm" onsubmit="event.preventDefault();">
+        
+        <div class="step active" id="step-1">
+            <h2>Шаг 1: Личные данные</h2>
+            <div class="input-item">
+                <label class="field-lbl" for="name">Как тебя зовут?</label>
+                <input type="text" id="name" required placeholder="Твое имя">
+            </div>
+            <div class="input-item">
+                <label class="field-lbl" for="username">Твой ник в Telegram или Instagram</label>
+                <input type="text" id="username" required placeholder="@username">
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn-go" onclick="moveNext(1)">Далее</button>
+            </div>
+        </div>
+
+        <div class="step" id="step-2">
+            <h2>Шаг 2: Вектор и Цель</h2>
+            <label class="field-lbl">Выбери свою главную цель:</label>
+            <label class="option-box"><input type="radio" name="goal" value="loss" checked> Снижение веса (сушка, топим жир)</label>
+            <label class="option-box"><input type="radio" name="goal" value="gain"> Набор мышечной массы (растим объемы)</label>
+            <label class="option-box"><input type="radio" name="goal" value="keep"> Сохранение текущего веса (поддержание формы)</label>
+            <label class="option-box"><input type="radio" name="goal" value="recomp"> Рекомпозиция (вес на месте: жир уходит, мышцы растут)</label>
+            
+            <label class="field-lbl" style="margin-top: 15px;">Пол:</label>
+            <label class="option-box"><input type="radio" name="gender" value="male" checked> Мужской</label>
+            <label class="option-box"><input type="radio" name="gender" value="female"> Женский</label>
+            
+            <div class="btn-row">
+                <button type="button" class="btn-back" onclick="moveBack(2)">Назад</button>
+                <button type="button" class="btn-go" onclick="moveNext(2)">Далее</button>
+            </div>
+        </div>
+
+        <div class="step" id="step-3">
+            <h2>Шаг 3: Замеры тела</h2>
+            <div class="input-item">
+                <label class="field-lbl" for="age">Возраст (полных лет)</label>
+                <input type="number" id="age" min="12" max="90" required placeholder="Например: 20">
+            </div>
+            <div class="input-item">
+                <label class="field-lbl" for="height">Рост (см)</label>
+                <input type="number" id="height" min="120" max="230" required placeholder="Например: 175">
+            </div>
+            <div class="input-item">
+                <label class="field-lbl" for="weight">Текущий вес (кг)</label>
+                <input type="number" id="weight" step="0.1" min="35" max="200" required placeholder="Например: 72.5">
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn-back" onclick="moveBack(3)">Назад</button>
+                <button type="button" class="btn-go" onclick="moveNext(3)">Далее</button>
+            </div>
+        </div>
+
+        <div class="step" id="step-4">
+            <h2>Шаг 4: Нагрузки и труд</h2>
+            <label class="field-lbl">Как усиленно ты тренируешься в зале/дома?</label>
+            <label class="option-box"><input type="radio" name="training" value="light" checked> Легкий тренинг (я новичок, втягиваюсь, веса небольшие)</label>
+            <label class="option-box"><input type="radio" name="training" value="heavy"> Тяжелый тренинг (пахота/база для любителей и опытных)</label>
+            <label class="option-box"><input type="radio" name="training" value="lfk"> Упор на ЛФК и растяжку (для поддержки здоровья)</label>
+            <label class="option-box"><input type="radio" name="training" value="none"> Я пока вообще не тренируюсь</label>
+
+            <label class="field-lbl" style="margin-top: 15px;">Связана ли работа/учеба/свободное время с тяжелым физ. трудом?</label>
+            <label class="option-box"><input type="radio" name="labor" value="yes" checked> Да, весь день на ногах / тяжелый физический труд</label>
+            <label class="option-box"><input type="radio" name="labor" value="no"> Нет, работа сидячая / офисная / за рулем / ничем не занимаюсь</label>
+
+            <label class="field-lbl" style="margin-top: 15px;">Какая у тебя активность в дни БЕЗ тренировок?</label>
+            <label class="option-box"><input type="radio" name="offDaysActivity" value="high" checked> Высокая (много хожу пешком, активный отдых, дела)</label>
+            <label class="option-box"><input type="radio" name="offDaysActivity" value="sedentary"> Сидячий образ жизни (игры, сериалы в свободное время)</label>
+            <label class="option-box"><input type="radio" name="offDaysActivity" value="sleep"> Пассивный отдых (всё свободное время я сплю / отсыпаюсь)</label>
+
+            <div class="btn-row">
+                <button type="button" class="btn-back" onclick="moveBack(4)">Назад</button>
+                <button type="button" class="btn-go" onclick="moveNext(4)">Далее</button>
+            </div>
+        </div>
+
+        <div class="step" id="step-5">
+            <h2>Шаг 5: Восстановление</h2>
+            <div class="input-item">
+                <label class="field-lbl" for="sleep">Сколько часов в среднем ты спишь в сутки?</label>
+                <select id="sleep">
+                    <option value="Менее 6 часов">Менее 6 часов</option>
+                    <option value="6-8 часов" selected>6-8 часов</option>
+                    <option value="Более 8 часов">Более 8 часов</option>
+                </select>
+            </div>
+            <div class="input-item">
+                <label class="field-lbl" for="daySleep">Есть ли у тебя дневной сон?</label>
+                <select id="daySleep">
+                    <option value="Да, регулярно">Да, регулярно</option>
+                    <option value="Иногда по выходным" selected>Иногда по выходным</option>
+                    <option value="Нет, никогда">Нет, никогда</option>
+                </select>
+            </div>
+            <div class="input-item">
+                <label class="field-lbl" for="stress">Как ты переносишь повседневные нагрузки и стресс?</label>
+                <select id="stress">
+                    <option value="Спокоен, стресса почти нет">Спокоен, стресса почти нет, ментально чувствую себя отлично</option>
+                    <option value="Стресс есть, но справляюсь" selected>Стресс есть, периодически нервничаю, но справляюсь</option>
+                    <option value="Хронический стресс, выгорание">Хронический стресс, жесткое выгорание, сил ни на что не хватает</option>
+                </select>
+            </div>
+            <div class="input-item">
+                <label class="field-lbl" for="badHabits">Отношения с вредными привычками:</label>
+                <select id="badHabits">
+                    <option value="Чист" selected>Чист (не курю, алкоголь редко или вообще нет)</option>
+                    <option value="Регулярно курю/выпиваю">Регулярно курю и/или выпиваю по выходным</option>
+                    <option value="Пробовал, не понравилось">Пробовал, не понравилось / равнодушен</option>
+                    <option value="Бросил">Бросил, больше не тянет</option>
+                </select>
+            </div>
+            <div class="btn-row">
+                <button type="button" class="btn-back" onclick="moveBack(5)">Назад</button>
+                <button type="button" class="btn-go" onclick="moveNext(5)">Далее</button>
+            </div>
+        </div>
+
+        <div class="step" id="step-6">
+            <h2>Шаг 6: Анализ питания</h2>
+            <div class="input-item">
+                <label class="field-lbl" for="foodFrequency">Как часто ты ешь в течение дня?</label>
+                <select id="foodFrequency">
+                    <option value="1-2 раза в день" selected>1–2 раза в день (редко, но огромными порциями)</option>
+                    <option value="3-4 раза в день">3–4 раза в день (полноценные, размеренные приемы пищи)</option>
+                    <option value="Постоянно кусочничаю">Постоянно кусочничаю / перекусываю в течение всего дня</option>
+                    <option value="Хаос: то переедаю, то забываю поесть">То переедаю, то вообще забываю поесть</option>
+                    <option value="Стараюсь питаться правильно, но срываюсь">Стараюсь питаться правильно, но срываюсь</option>
+                </select>
+            </div>
+
+            <div class="input-item">
+                <label class="field-lbl">Какая еда преобладает? (Выберите до 3 вариантов):</label>
+                <div id="food-checkboxes">
+                    <label class="option-box"><input type="checkbox" name="foodPattern" value="Сбалансированная"> Сбалансированная (домашнее мясо, крупы, овощи)</label>
+                    <label class="option-box"><input type="checkbox" name="foodPattern" value="Чистые продукты"> Стараюсь питаться правильно (чистые продукты)</label>
+                    <label class="option-box"><input type="checkbox" name="foodPattern" value="Фастфуд"> Фастфуд, полуфабрикаты, покупная кулинария</label>
+                    <label class="option-box"><input type="checkbox" name="foodPattern" value="Сладкое/мучное"> Много сладкого, мучного, выпечки, газировок</label>
+                    <label class="option-box"><input type="checkbox" name="foodPattern" value="Соленое/острое"> Много соленого, острого, соусов, чипсов</label>
+                    <label class="option-box"><input type="checkbox" name="foodPattern" value="Мало белка"> Ем мало белка (редко ем мясо, яйца, творог)</label>
+                </div>
+                <div class="limit-alert" id="checkbox-warning">Вы можете выбрать не более 3 вариантов!</div>
+            </div>
+
+            <div class="input-item">
+                <label class="field-lbl" for="foodVolumeTime">Когда приходится основной объем твоей еды за сутки?</label>
+                <select id="foodVolumeTime">
+                    <option value="Распределен равномерно" selected>Распределен равномерно в течение всего дня</option>
+                    <option value="Вечером наедаюсь">Пропускаю завтрак или обед, а вечером наедаюсь</option>
+                    <option value="Дико тянет поесть ночью">Днем ем нормально, но ночью/перед сном дико тянет поесть</option>
+                    <option value="Держусь на 1 перекусе сутки">Иногда забываю поесть и держусь на одном перекусе/кофе сутки</option>
+                </select>
+            </div>
+
+            <div class="btn-row">
+                <button type="button" class="btn-back" onclick="moveBack(6)">Назад</button>
+                <button type="button" class="btn-go" onclick="runCalculation()">Получить КБЖУ</button>
+            </div>
+        </div>
+
+        <div class="step" id="step-wait">
+            <div class="loader">Тренер обрабатывает анкету и собирает рацион...</div>
+        </div>
+
+        <div class="step" id="step-output">
+            <h2>Твой персональный расчет</h2>
+            <div id="results"></div>
+            <div class="btn-row">
+                <button type="button" class="btn-go" onclick="location.reload()">Пройти заново</button>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    // СЮДА ВСТАВЬ СВОЮ ССЫЛКУ ИЗ GOOGLE APPS SCRIPT
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOhRLt8WY8wyxLmT6cvKnQ7qjXGJhSRBwXvlz2e6obIVxmffdoCDhv0SDwrNfC97Hh/exec'; 
+
+    // Ограничение выбора чекбоксов до 3 элементов
+    const checkboxes = document.querySelectorAll('input[name="foodPattern"]');
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const checkedCount = document.querySelectorAll('input[name="foodPattern"]:checked').length;
+            if (checkedCount > 3) {
+                cb.checked = false;
+                document.getElementById('checkbox-warning').style.display = 'block';
+            } else {
+                document.getElementById('checkbox-warning').style.display = 'none';
+            }
+        });
+    });
+
+    function moveNext(curr) {
+        if (curr === 1) {
+            if (!document.getElementById('name').value || !document.getElementById('username').value) {
+                alert('Заполни имя и свой юзернейм!'); return;
+            }
+        }
+        if (curr === 3) {
+            if (!document.getElementById('age').value || !document.getElementById('height').value || !document.getElementById('weight').value) {
+                alert('Пожалуйста, укажи возраст, рост и вес!'); return;
+            }
+        }
+        document.getElementById(`step-${curr}`).classList.remove('active');
+        document.getElementById(`step-${curr+1}`).classList.add('active');
+    }
+
+    function moveBack(curr) {
+        document.getElementById(`step-${curr}`).classList.remove('active');
+        document.getElementById(`step-${curr-1}`).classList.add('active');
+    }
+
+    function runCalculation() {
+        document.getElementById('step-6').classList.remove('active');
+        document.getElementById('step-wait').classList.add('active');
+
+        // Сбор значений из формы
+        const name = document.getElementById('name').value;
+        const username = document.getElementById('username').value;
+        const goal = document.querySelector('input[name="goal"]:checked').value;
+        const gender = document.querySelector('input[name="gender"]:checked').value;
+        const age = parseInt(document.getElementById('age').value);
+        const height = parseInt(document.getElementById('height').value);
+        const weight = parseFloat(document.getElementById('weight').value);
+        
+        const training = document.querySelector('input[name="training"]:checked').value;
+        const labor = document.querySelector('input[name="labor"]:checked').value;
+        const offDaysActivity = document.querySelector('input[name="offDaysActivity"]:checked').value;
+        
+        const sleep = document.getElementById('sleep').value;
+        const daySleep = document.getElementById('daySleep').value;
+        const stress = document.getElementById('stress').value;
+        const badHabits = document.getElementById('badHabits').value;
+        const foodFrequency = document.getElementById('foodFrequency').value;
+        const foodVolumeTime = document.getElementById('foodVolumeTime').value;
+
+        const checkedFoods = [];
+        document.querySelectorAll('input[name="foodPattern"]:checked').forEach(cb => checkedFoods.push(cb.value));
+
+        // 1. Расчет базового обмена (Миффлин-Сан Жеор)
+        let bmr = 0;
+        if (gender === 'male') {
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+        } else {
+            bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+        }
+
+        // 2. Сбор коэффициента активности
+        let factor = 1.2; 
+        if (training === 'light') factor = 1.375;
+        if (training === 'heavy') factor = 1.55;
+        if (training === 'lfk') factor = 1.25;
+
+        // Корректировка за физ. труд
+        if (labor === 'yes') factor += 0.2; 
+        // Корректировка за активность в дни отдыха
+        if (offDaysActivity === 'high') factor += 0.05;
+
+        let tdee = bmr * factor; // Чистая норма поддержания
+        let calories = 0;
+        let p = 0, f = 0, c = 0;
+
+        // 3. Высчитываем КБЖУ под конкретную цель
+        if (goal === 'loss') {
+            calories = Math.round(tdee - 350);
+            p = Math.round(weight * 2.2); 
+            f = Math.round(weight * 0.9);
+            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+        } else if (goal === 'gain') {
+            calories = Math.round(tdee + 400);
+            p = Math.round(weight * 2.0);
+            f = Math.round(weight * 1.0);
+            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+        } else if (goal === 'keep') {
+            calories = Math.round(tdee);
+            p = Math.round(weight * 1.6);
+            f = Math.round(weight * 1.0);
+            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+        } else if (goal === 'recomp') {
+            calories = Math.round(tdee - 120); // Легкий дефицит для топки жира
+            p = Math.round(weight * 2.3); // Максимальный белок для синтеза мышц
+            f = Math.round(weight * 0.8);
+            c = Math.round((calories - (p * 4) - (f * 9)) / 4);
+        }
+
+        const bjuString = `${p}/${f}/${c}`;
+
+        // Подготовка данных для отправки
+        const payload = {
+            name, username, goal, gender, age, height, weight,
+            training: document.querySelector('input[name="training"]:checked').parentElement.textContent.trim(),
+            labor: labor === 'yes' ? 'Тяжелый труд' : 'Сидячая',
+            offDaysActivity: offDaysActivity === 'high' ? 'Высокая' : 'Низкая',
+            sleep, daySleep, stress, badHabits, foodFrequency,
+            foodPattern: checkedFoods, foodVolumeTime,
+            calories, bju: bjuString
+        };
+
+        // Отправка в гугл таблицу (no-cors режим для стабильности)
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            renderFinalOutput(name, goal, calories, p, f, c, sleep, daySleep, stress, badHabits, foodFrequency, checkedFoods, foodVolumeTime);
+        }).catch(err => {
+            console.error(err);
+            renderFinalOutput(name, goal, calories, p, f, c, sleep, daySleep, stress, badHabits, foodFrequency, checkedFoods, foodVolumeTime);
+        });
+    }
+
+    function renderFinalOutput(name, goal, cal, p, f, c, sleep, daySleep, stress, badHabits, freq, checkedFoods, volTime) {
+        document.getElementById('step-wait').classList.remove('active');
+        document.getElementById('step-output').classList.add('active');
+
+        let goalLine = '';
+        if (goal === 'loss') goalLine = 'снижения веса (сушки)';
+        if (goal === 'gain') goalLine = 'набора мышечной массы';
+        if (goal === 'keep') goalLine = 'сохранения текущей формы';
+        if (goal === 'recomp') goalLine = 'рекомпозиции (сжигания жира одновременно с ростом мышц)';
+
+        let html = `
+            <p>Привет, <strong>${name}</strong>! Мы проанализировали твои вводные данные и образ жизни. Лови персональные цифры под цель <strong>${goalLine}</strong>:</p>
+            
+            <div class="kbju-dashboard">
+                <div class="kbju-card"><span class="num">${cal}</span><span class="txt">Ккал</span></div>
+                <div class="kbju-card"><span class="num">${p}г</span><span class="txt">Белки</span></div>
+                <div class="kbju-card"><span class="num">${f}г</span><span class="txt">Жиры</span></div>
+                <div class="kbju-card"><span class="num">${c}г</span><span class="txt">Углев.</span></div>
+            </div>
+
+            <div class="coach-memo">
+                <strong>💡 Разбор твоих ошибок и рекомендации от тренера:</strong>
+                <ul>
+                    <li><strong>Базовое правило:</strong> Не налегай на соленое, соусы и тяжелую пищу прямо перед сном — это ломает фазы глубокого сна и гарантирует утренние отеки на лице. Потребляй чистые калории (крупы, мясо, яйца, птица).</li>
+        `;
+
+        // Умные разборы питания
+        if (freq === 'Стараюсь питаться правильно, но срываюсь') {
+            html += `<li><strong>Про срывы:</strong> Твое желание питаться правильно — это круто! Срывы случаются не из-за слабой воли, а когда рамки слишком жесткие или днем организм банально голодает. Наш расчет КБЖУ — сытный, ешь свою норму и срывов не будет!</li>`;
+        }
+        if (freq === '1-2 раза в день') {
+            html += `<li><strong>Режим еды:</strong> Питание 1-2 раза в день перегружает ЖКТ огромными порциями. Попробуй распределить этот же калораж на 3-4 приема — энергия будет ровнее, а усвоение белка эффективнее.</li>`;
+        }
+        if (freq === 'Постоянно кусочничаю') {
+            html += `<li><strong>Про кусочничество:</strong> Постоянные мелкие перекусы бесконечно держат инсулин высоким. На сушке это блокирует жиросжигание, а на массе убивает здоровый аппетит к полноценной еде. Сделай чистые промежутки между едой.</li>`;
+        }
+        if (volTime === 'Вечером наедаюсь' || volTime === 'Дико тянет поесть ночью') {
+            html += `<li><strong>Вечерний жор:</strong> Смещение калорий на ночь — следствие пустого завтрака и скудного обеда. Начни плотно завтракать сложными углеводами и белком, тогда к вечеру дикий аппетит отступит сам.</li>`;
+        }
+        if (volTime === 'Держусь на 1 перекусе сутки' || freq === 'Хаос: то переедаю, то забываю поесть') {
+            html += `<li><strong>Внимание, хаос в режиме!</strong> Голодать сутками на кофе, а потом переедать — это сильный удар по метаболизму. Организм пугается и при первой возможности будет откладывать всё в жировое депо. Нужен четкий график приемов пищи.</li>`;
+        }
+
+        // Разбор состава продуктов
+        if (checkedFoods.includes('Мало белка')) {
+            html += `<li><strong>Дефицит белка:</strong> Твоя цель требует жесткого контроля протеина (${p}г). Если не добираешь мясо, рыбу или яйца — мышцы на массе расти не будут, а на сушке сгорит мышечная ткань, а не жир. Добавь белок в каждый прием пищи!</li>`;
+        }
+        if (checkedFoods.includes('Фастфуд') || checkedFoods.includes('Сладкое/мучное')) {
+            html += `<li><strong>Качество топлива:</strong> Фастфуд и сахар дают пустые калории и резкие скачки сахара. Через час ты снова захочешь есть, а избыток быстрых углей легко пойдет в бока. Сократи их до 10-15% от общего рациона.</li>`;
+        }
+
+        // Разбор восстановления и сна
+        if (sleep === 'Менее 6 часов') {
+            if (daySleep === 'Да, регулярно') {
+                html += `<li><strong>Недосып ночью:</strong> Ты спишь ночью менее 6 часов. Дневной сон немного спасает ситуацию и гасит кортизол, но старайся добирать ночные 7 часов, чтобы гормональная система работала на 100%.</li>`;
+            } else {
+                html += `<li><strong>Критический недосып:</strong> Без 7-8 часов ночного сна КБЖУ работает наполовину. Гормон кортизол будет разрушать мышцы и заставлять тело копить жир «про запас». Ложись спать вовремя!</li>`;
+            }
+        }
+
+        // Разбор стресса
+        if (stress === 'Хронический стресс, выгорание') {
+            html += `<li><strong>Высокий стресс!</strong> ЦНС на пределе. Не пытайся сейчас убивать себя сверхинтенсивными тренировками «до отказа». Делай упор на технику, качественное восстановление и не урезай калории слишком резко. Телу нужен комфорт.</li>`;
+        }
+
+        // Разбор вредных привычек
+        if (badHabits === 'Регулярно курю/выпиваю') {
+            html += `<li><strong>Алкоголь и курение:</strong> Алкоголь на 24-48 часов полностью выключает синтез белка и сжигает твои результаты в зале. Если хочешь прогресса — минимизируй спиртное.</li>`;
+        }
+
+        html += `</ul></div>`;
+        document.getElementById('results').innerHTML = html;
+    }
+</script>
+
+</body>
+</html>
